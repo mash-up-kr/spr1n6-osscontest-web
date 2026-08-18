@@ -97,7 +97,7 @@ export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
           <p>
             {file
               ? `${Math.max(file.size / 1024 / 1024, 0.1).toFixed(1)} MB · 업로드 준비됨`
-              : 'PDF, DOCX 또는 MD · 최대 20MB'}
+              : 'HWP, DOCX, TXT 또는 MD · 최대 20MB'}
           </p>
         </div>
         <button className="link-button" type="button" onClick={() => inputRef.current?.click()} disabled={uploadProgress !== null}>

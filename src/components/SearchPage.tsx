@@ -3,7 +3,7 @@ import { mockSearchResults } from '../data/mockData'
 import type { SearchResult, User } from '../types'
 
 type SearchState = 'initial' | 'loading' | 'results' | 'empty' | 'denied' | 'error'
-type DemoResponse = 'normal' | 'empty' | 'error'
+type DemoResponse = 'normal' | 'empty' | 'denied' | 'error'
 
 type SearchPageProps = {
   user: User
@@ -16,25 +16,26 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
   const [response, setResponse] = useState<DemoResponse>('normal')
   const [results, setResults] = useState<SearchResult[]>([])
   const [elapsed, setElapsed] = useState(124)
+  const [userChanged, setUserChanged] = useState(false)
   const previousUser = useRef({ id: user.id, tenant: user.tenant })
   const requestId = useRef(0)
 
   useEffect(() => {
-    if (previousUser.current.id !== user.id) {
+    const contextChanged = previousUser.current.id !== user.id || previousUser.current.tenant !== user.tenant
+
+    if (contextChanged) {
       requestId.current += 1
-      if (state === 'results' && previousUser.current.tenant === user.tenant) {
-        setResults([])
-        setState('denied')
-      } else {
-        setState('initial')
-      }
+      setResults([])
+      setState('initial')
+      setUserChanged(true)
       previousUser.current = { id: user.id, tenant: user.tenant }
     }
-  }, [user.id, user.tenant, state])
+  }, [user.id, user.tenant])
 
   const search = (event: FormEvent) => {
     event.preventDefault()
     if (!query.trim() || state === 'loading') return
+    setUserChanged(false)
     setState('loading')
     const startedAt = performance.now()
     const currentRequestId = ++requestId.current
@@ -44,6 +45,11 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
       setElapsed(Math.max(86, Math.round(performance.now() - startedAt)))
       if (response === 'error') {
         setState('error')
+        return
+      }
+      if (response === 'denied') {
+        setResults([])
+        setState('denied')
         return
       }
       if (response === 'empty' || (user.tenant === '테넌트 B' && query.toLowerCase().includes('opensql'))) {
@@ -97,6 +103,7 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
             <select id="demo-response" value={response} onChange={(event) => setResponse(event.target.value as DemoResponse)}>
               <option value="normal">정상 결과</option>
               <option value="empty">결과 없음</option>
+              <option value="denied">권한 없음 (403)</option>
               <option value="error">검색 실패</option>
             </select>
           </label>
@@ -107,8 +114,10 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
         {state === 'initial' && (
           <div className="search-initial">
             <span className="large-search-icon" aria-hidden="true" />
-            <h2 id="results-heading">인덱싱된 문서 검색</h2>
-            <p>선택한 데모 사용자와 테넌트 권한을 기준으로 결과를 제공합니다.</p>
+            <h2 id="results-heading">{userChanged ? '검색 사용자가 변경되었습니다' : '인덱싱된 문서 검색'}</h2>
+            <p>{userChanged
+              ? `이전 검색 결과를 제거했습니다. ${user.tenant} / ${user.name} 권한으로 다시 검색해 주세요.`
+              : '선택한 데모 사용자와 테넌트 권한을 기준으로 결과를 제공합니다.'}</p>
           </div>
         )}
 

@@ -56,16 +56,22 @@ function App() {
     setDocuments((current) => current.map((document) => {
       if (document.id !== documentId) return document
       const completed = status === 'COMPLETED'
-      const versions = document.versions.map((version) => version.versionNo === versionNo ? {
-        ...version,
-        status,
-        stage,
-        progress,
-        chunkCount: chunkCount ?? version.chunkCount,
-        startedAt: status === 'PROCESSING' ? version.startedAt ?? new Date().toISOString() : version.startedAt,
-        completedAt: completed ? new Date().toISOString() : version.completedAt,
-        searchable: completed ? true : version.searchable,
-      } : completed ? { ...version, searchable: false } : version)
+      const advancesEmbeddingVersion = completed && versionNo > (document.latestEmbeddingVersionNo ?? 0)
+      const versions = document.versions.map((version) => {
+        const nextVersion = version.versionNo === versionNo ? {
+          ...version,
+          status,
+          stage,
+          progress,
+          chunkCount: chunkCount ?? version.chunkCount,
+          startedAt: status === 'PROCESSING' ? version.startedAt ?? new Date().toISOString() : version.startedAt,
+          completedAt: completed ? new Date().toISOString() : version.completedAt,
+        } : version
+
+        return advancesEmbeddingVersion
+          ? { ...nextVersion, searchable: version.versionNo === versionNo }
+          : nextVersion
+      })
       const isLatest = versionNo === document.latestUploadVersionNo
       return {
         ...document,
@@ -75,8 +81,8 @@ function App() {
         progress: isLatest ? progress : document.progress,
         chunks: isLatest && chunkCount !== undefined ? chunkCount : document.chunks,
         updated: isLatest ? nowTime() : document.updated,
-        latestEmbeddingVersionNo: completed ? versionNo : document.latestEmbeddingVersionNo,
-        searchableVersionNo: completed ? versionNo : document.searchableVersionNo,
+        latestEmbeddingVersionNo: advancesEmbeddingVersion ? versionNo : document.latestEmbeddingVersionNo,
+        searchableVersionNo: advancesEmbeddingVersion ? versionNo : document.searchableVersionNo,
       }
     }))
   }
