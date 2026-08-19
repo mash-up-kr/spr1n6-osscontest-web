@@ -1,23 +1,26 @@
 import { useRef, useState, type DragEvent } from 'react'
+import { apiErrorMessage } from '../api/client'
 
 type UploadPanelProps = {
   onClose: () => void
-  onUpload: (file: File, title?: string) => void
+  onUpload: (file: File, title?: string) => Promise<void>
 }
+
+const allowedExtensions = ['pdf', 'docx', 'md', 'markdown', 'hwp', 'txt']
 
 export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [isDragging, setIsDragging] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
   const selectFile = (nextFile?: File) => {
     if (!nextFile) return
     const extension = nextFile.name.split('.').pop()?.toLowerCase()
-    if (!extension || !['pdf', 'docx', 'md'].includes(extension)) {
-      setValidationError('지원하지 않는 파일 형식입니다. PDF, DOCX 또는 MD 파일을 선택해 주세요.')
+    if (!extension || !allowedExtensions.includes(extension)) {
+      setValidationError('PDF, DOCX, Markdown, HWP 또는 TXT 파일을 선택해 주세요.')
       setFile(null)
       return
     }
@@ -36,19 +39,17 @@ export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
     selectFile(event.dataTransfer.files[0])
   }
 
-  const startUpload = () => {
-    if (!file || uploadProgress !== null) return
-    setUploadProgress(12)
-    const timer = window.setInterval(() => {
-      setUploadProgress((progress) => Math.min((progress ?? 0) + 18, 94))
-    }, 150)
-
-    window.setTimeout(() => {
-      window.clearInterval(timer)
-      setUploadProgress(100)
-      onUpload(file, title.trim() || undefined)
-      window.setTimeout(onClose, 260)
-    }, 900)
+  const startUpload = async () => {
+    if (!file || isUploading) return
+    setIsUploading(true)
+    setValidationError(null)
+    try {
+      await onUpload(file, title.trim() || undefined)
+      onClose()
+    } catch (error) {
+      setValidationError(apiErrorMessage(error))
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -58,7 +59,7 @@ export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
           <h2 id="upload-heading">문서 업로드</h2>
           <p>업로드가 끝나면 문서 인덱싱이 비동기로 시작됩니다.</p>
         </div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="업로드 영역 닫기">×</button>
+        <button className="icon-button" type="button" onClick={onClose} aria-label="업로드 영역 닫기" disabled={isUploading}>×</button>
       </div>
 
       <label className="field-stack" htmlFor="document-title">
@@ -69,16 +70,13 @@ export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="비워두면 파일명을 사용합니다"
-          disabled={uploadProgress !== null}
+          disabled={isUploading}
         />
       </label>
 
       <div
         className={isDragging ? 'dropzone dragging' : 'dropzone'}
-        onDragEnter={(event) => {
-          event.preventDefault()
-          setIsDragging(true)
-        }}
+        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true) }}
         onDragOver={(event) => event.preventDefault()}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
@@ -87,38 +85,27 @@ export function UploadPanel({ onClose, onUpload }: UploadPanelProps) {
           ref={inputRef}
           id="document-upload"
           type="file"
-          accept=".pdf,.docx,.md"
+          accept=".pdf,.docx,.md,.markdown,.hwp,.txt"
           onChange={(event) => selectFile(event.target.files?.[0])}
-          disabled={uploadProgress !== null}
+          disabled={isUploading}
         />
         <span className="upload-arrow" aria-hidden="true">↑</span>
         <div>
           <strong>{file ? file.name : '여기에 문서를 끌어다 놓으세요'}</strong>
-          <p>
-            {file
-              ? `${Math.max(file.size / 1024 / 1024, 0.1).toFixed(1)} MB · 업로드 준비됨`
-              : 'HWP, DOCX, TXT 또는 MD · 최대 20MB'}
-          </p>
+          <p>{file ? `${Math.max(file.size / 1024 / 1024, 0.1).toFixed(1)} MB · 업로드 준비됨` : 'PDF, DOCX, Markdown, HWP, TXT · 최대 20MB'}</p>
         </div>
-        <button className="link-button" type="button" onClick={() => inputRef.current?.click()} disabled={uploadProgress !== null}>
+        <button className="link-button" type="button" onClick={() => inputRef.current?.click()} disabled={isUploading}>
           {file ? '다른 파일 선택' : '파일 선택'}
         </button>
       </div>
 
       {validationError && <p className="form-error" role="alert">{validationError}</p>}
-
-      {uploadProgress !== null && (
-        <div className="uploading-row" aria-live="polite">
-          <span>{file?.name} 업로드 중</span>
-          <strong>{uploadProgress}%</strong>
-          <div className="upload-track"><span style={{ width: `${uploadProgress}%` }} /></div>
-        </div>
-      )}
+      {isUploading && <div className="uploading-row" aria-live="polite"><span className="spinner dark" aria-hidden="true" /><strong>{file?.name} 업로드 중…</strong></div>}
 
       <div className="upload-actions">
-        <button className="button secondary" type="button" onClick={onClose} disabled={uploadProgress !== null}>취소</button>
-        <button className="button primary" type="button" onClick={startUpload} disabled={!file || uploadProgress !== null}>
-          {uploadProgress !== null ? '업로드 중…' : '업로드'}
+        <button className="button secondary" type="button" onClick={onClose} disabled={isUploading}>취소</button>
+        <button className="button primary" type="button" onClick={startUpload} disabled={!file || isUploading}>
+          {isUploading ? '업로드 중…' : '업로드'}
         </button>
       </div>
     </section>

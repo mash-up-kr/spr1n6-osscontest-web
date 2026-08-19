@@ -31,8 +31,8 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
       <div className="connection-status">
         <span aria-hidden="true" />
         <div>
-          <strong>이벤트 스트림</strong>
-          <small>모의 연결됨</small>
+          <strong>API 연결</strong>
+          <small>상태 폴링 사용</small>
         </div>
       </div>
     </aside>

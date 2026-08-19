@@ -1,4 +1,4 @@
-import type { DocumentStatus, IndexingStage } from '../types'
+import type { DocumentStatus } from '../types'
 
 const labels: Record<DocumentStatus, string> = {
   PENDING: '대기 중',
@@ -8,21 +8,12 @@ const labels: Record<DocumentStatus, string> = {
   FAILED: '실패',
 }
 
-const stageLabels: Record<IndexingStage, string> = {
-  UPLOADED: '업로드 완료',
-  PARSING: '파싱',
-  CHUNKING: '청킹',
-  EMBEDDING: '임베딩',
-  INDEXED: '인덱싱 완료',
-}
-
-export function StatusBadge({ status, stage }: { status: DocumentStatus; stage?: IndexingStage }) {
+export function StatusBadge({ status }: { status: DocumentStatus }) {
   const symbol = status === 'COMPLETED' ? '✓' : status === 'FAILED' ? '!' : status === 'RETRY_WAIT' ? '◷' : '●'
-  const label = status === 'PROCESSING' && stage ? stageLabels[stage] : labels[status]
   return (
     <span className={`status-badge status-${status.toLowerCase()}`}>
       <span aria-hidden="true">{symbol}</span>
-      {label}
+      {labels[status]}
     </span>
   )
 }
