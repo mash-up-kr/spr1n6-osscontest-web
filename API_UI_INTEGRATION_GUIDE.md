@@ -13,10 +13,10 @@ VITE_API_BASE_URL=http://localhost:8080 npm run dev
 모든 요청에는 Header에서 선택한 데모 사용자의 식별자가 자동으로 들어갑니다.
 
 ```http
-X-User-Id: tenant-a-user-a
+X-User-Id: 1
 ```
 
-테넌트 식별자는 경로나 body로 보내지 않습니다.
+테넌트 식별자는 헤더로 보내지 않습니다. 테넌트 권한을 추가하거나 회수하는 요청의 `principalId`에는 사용자 A/B/C에 따라 각각 `1`/`2`/`3`이 들어갑니다.
 
 ## 코드 구조
 
