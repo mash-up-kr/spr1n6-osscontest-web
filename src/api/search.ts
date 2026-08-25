@@ -5,7 +5,7 @@ export type SearchRequest = {
   query: string
   topK?: number
   contextWindow?: number
-  efSearch?: number
+  rerank?: boolean
 }
 
 export const searchDocuments = (userId: string, request: SearchRequest, signal?: AbortSignal) => (

@@ -23,6 +23,7 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
   const [elapsed, setElapsed] = useState(0)
   const [topK, setTopK] = useState(10)
   const [contextWindow, setContextWindow] = useState(1)
+  const [rerank, setRerank] = useState(false)
   const [traceId, setTraceId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [userChanged, setUserChanged] = useState(false)
@@ -57,7 +58,7 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
 
     try {
       const response = await searchDocuments(user.id, {
-        query: query.trim(), topK, contextWindow, efSearch: 100,
+        query: query.trim(), topK, contextWindow, rerank,
       }, controller.signal)
       setElapsed(Math.round(performance.now() - startedAt))
       setResults(response.items)
@@ -96,6 +97,7 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
           <span>권한 필터: <strong>{user.tenant}</strong></span>
           <label>결과 수 <select value={topK} onChange={(event) => setTopK(Number(event.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label>
           <label>앞뒤 문맥 <select value={contextWindow} onChange={(event) => setContextWindow(Number(event.target.value))}>{[0, 1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}개</option>)}</select></label>
+          <label><input type="checkbox" checked={rerank} onChange={(event) => setRerank(event.target.checked)} /> 재정렬(정확도 우선)</label>
         </div>
       </section>
 
