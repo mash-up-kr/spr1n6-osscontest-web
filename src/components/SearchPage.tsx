@@ -97,7 +97,8 @@ export function SearchPage({ user, onOpenDocument }: SearchPageProps) {
           <span>권한 필터: <strong>{user.tenant}</strong></span>
           <label>결과 수 <select value={topK} onChange={(event) => setTopK(Number(event.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label>
           <label>앞뒤 문맥 <select value={contextWindow} onChange={(event) => setContextWindow(Number(event.target.value))}>{[0, 1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}개</option>)}</select></label>
-          <label><input type="checkbox" checked={rerank} onChange={(event) => setRerank(event.target.checked)} /> 재정렬(정확도 우선)</label>
+          {/* 합성 QA 평가에서는 켜면 정답률이 떨어지고 지연시간이 늘었다(docs/SEARCH.md 7절). 기본값 off 를 유지하고 비교용으로만 노출한다. */}
+          <label title="Cohere Rerank 로 상위 후보를 다시 정렬한다. 자체 평가에서는 정답률이 떨어지고 지연시간이 늘어 기본값은 off 다."><input type="checkbox" checked={rerank} onChange={(event) => setRerank(event.target.checked)} /> 재정렬(rerank)</label>
         </div>
       </section>
 
