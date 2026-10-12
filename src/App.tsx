@@ -170,29 +170,25 @@ function App() {
   }, [detailDocumentId, fetchDocumentDetail])
 
   useEffect(() => {
-    if (!detailDocument || isTerminal(detailDocument.indexing.status)) return
+    if (!detailDocument || !detailDocument.versions.some((version) => !isTerminal(version.indexing.status))) return
     const controller = new AbortController()
+    let pending = false
     const poll = async () => {
+      if (pending) return
+      pending = true
       try {
-        const indexing = await getIndexingStatus(
-          currentUser.id, detailDocument.id, detailDocument.latestUploadVersionNo, controller.signal,
-        )
+        const next = await fetchDocumentDetail(detailDocument.id, controller.signal)
         if (controller.signal.aborted) return
-        setDetailDocument((current) => current && current.id === detailDocument.id ? {
-          ...current,
-          indexing,
-          latestVersionIndexingStatus: indexing.status,
-          versions: current.versions.map((version) => version.versionNo === indexing.versionNo ? { ...version, indexing } : version),
-        } : current)
-        setDocuments((current) => current.map((document) => document.id === detailDocument.id ? { ...document, latestVersionIndexingStatus: indexing.status } : document))
-        if (isTerminal(indexing.status)) { await refreshDetail(); refreshList() }
+        setDetailDocument(next)
+        if (next.versions.some((version) => isTerminal(version.indexing.status)
+          && detailDocument.versions.some((previous) => previous.versionNo === version.versionNo && !isTerminal(previous.indexing.status)))) refreshList()
       } catch (error) {
         if (!controller.signal.aborted) notify(apiErrorMessage(error), 'error')
-      }
+      } finally { pending = false }
     }
     const timer = window.setInterval(() => void poll(), 3000)
     return () => { controller.abort(); window.clearInterval(timer) }
-  }, [currentUser.id, detailDocument, notify, refreshDetail, refreshList])
+  }, [detailDocument, fetchDocumentDetail, notify, refreshList])
 
   const handleUserChange = (userId: string) => {
     setCurrentUserId(userId)

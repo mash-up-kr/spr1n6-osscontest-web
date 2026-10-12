@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type {
   DetailTab,
   DocumentDetail,
@@ -31,7 +31,7 @@ type DocumentDetailPageProps = {
 
 const tabLabels: Record<DetailTab, string> = { overview: '개요', versions: '버전', permissions: '권한' }
 const allowedExtensions = ['pdf', 'docx', 'md', 'markdown', 'hwp', 'txt']
-const permissionLabel = (permission: PermissionLevel | null) => permission === 'WRITE' ? '쓰기' : permission === 'READ' ? '읽기' : '없음'
+const permissionLabel = (permission: PermissionLevel | null) => permission === 'ADMIN' ? '관리' : permission === 'WRITE' ? '쓰기' : permission === 'READ' ? '읽기' : '없음'
 const formatDateTime = (value: string) => new Intl.DateTimeFormat('ko-KR', {
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 }).format(new Date(value))
@@ -56,13 +56,9 @@ export function DocumentDetailPage({
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>('READ')
   const [isSaving, setIsSaving] = useState(false)
 
-  const currentPermission = useMemo(() => {
-    const direct = document.permissions.find((permission) => permission.principalType === 'USER' && permission.principalId === user.id)
-    const tenantPermission = document.permissions.find((permission) => permission.principalType === 'TENANT' && permission.principalId === user.tenantId)
-    return direct?.permission ?? tenantPermission?.permission ?? null
-  }, [document.permissions, user.id, user.tenantId])
-
-  const canWrite = document.permissionsAvailable && currentPermission === 'WRITE'
+  const currentPermission = document.effectivePermission
+  const canWrite = currentPermission === 'WRITE' || currentPermission === 'ADMIN'
+  const canManage = currentPermission === 'ADMIN' && document.permissionsAvailable
   const tenantUsers = users.filter((candidate) => candidate.tenantId === user.tenantId)
 
   const principalName = (permission: DocumentPermission) => {
@@ -155,7 +151,7 @@ export function DocumentDetailPage({
 
           <section className="detail-section document-info-section">
             <div className="detail-section-heading"><div><h2>문서 정보</h2><p>외부 API 식별자와 UTC 시각을 기준으로 표시합니다.</p></div></div>
-            <dl><div><dt>문서 ID</dt><dd>{document.id}</dd></div><div><dt>생성 시각</dt><dd>{formatDateTime(document.createdAt)}</dd></div><div><dt>최신 업로드</dt><dd>버전 {document.latestUploadVersionNo}</dd></div><div><dt>최신 임베딩</dt><dd>{document.latestEmbeddingVersionNo ? `버전 ${document.latestEmbeddingVersionNo}` : '—'}</dd></div><div><dt>검색 대상</dt><dd>{document.searchableVersionNo ? `버전 ${document.searchableVersionNo}` : '없음'}</dd></div><div><dt>내 권한</dt><dd>{document.permissionsAvailable ? permissionLabel(currentPermission) : '조회 불가'}</dd></div></dl>
+            <dl><div><dt>문서 ID</dt><dd>{document.id}</dd></div><div><dt>생성 시각</dt><dd>{formatDateTime(document.createdAt)}</dd></div><div><dt>최신 업로드</dt><dd>버전 {document.latestUploadVersionNo}</dd></div><div><dt>최신 임베딩</dt><dd>{document.latestEmbeddingVersionNo ? `버전 ${document.latestEmbeddingVersionNo}` : '—'}</dd></div><div><dt>검색 대상</dt><dd>{document.searchableVersionNo ? `버전 ${document.searchableVersionNo}` : '없음'}</dd></div><div><dt>내 권한</dt><dd>{permissionLabel(currentPermission)}</dd></div></dl>
           </section>
         </div>
       )}
@@ -181,11 +177,11 @@ export function DocumentDetailPage({
 
       {tab === 'permissions' && (
         <section className="detail-section permissions-section">
-          <div className="detail-section-heading"><div><h2>권한</h2><p>사용자 또는 테넌트의 READ·WRITE 권한을 관리합니다.</p></div><button className="button secondary" type="button" onClick={() => setModal('permission')} disabled={!canWrite}>＋ 권한 부여</button></div>
+          <div className="detail-section-heading"><div><h2>권한</h2><p>사용자 또는 테넌트의 READ·WRITE·ADMIN 권한을 관리합니다.</p></div><button className="button secondary" type="button" onClick={() => setModal('permission')} disabled={!canManage}>＋ 권한 부여</button></div>
           {!document.permissionsAvailable ? <div className="inline-error access-error"><span aria-hidden="true">!</span><div><strong>권한 목록을 조회할 수 없습니다</strong><p>현재 사용자에게 권한 관리 권한이 없습니다.</p></div></div> : (
-            <><div className={canWrite ? 'access-summary' : 'access-summary read-only'}><strong>내 권한: {permissionLabel(currentPermission)}</strong><span>{canWrite ? '문서 접근 권한을 관리할 수 있습니다.' : 'WRITE 권한이 있는 사용자만 권한을 변경할 수 있습니다.'}</span></div>
+            <><div className={canManage ? 'access-summary' : 'access-summary read-only'}><strong>내 권한: {permissionLabel(currentPermission)}</strong><span>{canManage ? '문서 접근 권한을 관리할 수 있습니다.' : '소유자 또는 ADMIN 권한이 있는 사용자만 권한을 변경할 수 있습니다.'}</span></div>
             <div className="table-container"><table className="document-table permission-table"><thead><tr><th>대상</th><th>유형</th><th>권한</th><th>작업</th></tr></thead><tbody>{document.permissions.map((permission) => (
-              <tr key={`${permission.principalType}-${permission.principalId}`}><td><strong>{principalName(permission)}</strong></td><td className="metadata">{permission.principalType === 'USER' ? '사용자' : '테넌트'}</td><td><span className={`permission-badge permission-${permission.permission.toLowerCase()}`}>{permissionLabel(permission.permission)}</span></td><td><div className="table-actions"><button type="button" disabled={!canWrite} onClick={() => void onUpsertPermission({ ...permission, permission: permission.permission === 'READ' ? 'WRITE' : 'READ' }).catch(() => undefined)}>{permission.permission === 'READ' ? '쓰기로 변경' : '읽기로 변경'}</button><button className="danger" type="button" disabled={!canWrite || (permission.principalType === 'USER' && permission.principalId === user.id)} onClick={() => void onRemovePermission(permission).catch(() => undefined)}>회수</button></div></td></tr>
+              <tr key={`${permission.principalType}-${permission.principalId}`}><td><strong>{principalName(permission)}</strong></td><td className="metadata">{permission.principalType === 'USER' ? '사용자' : '테넌트'}</td><td><span className={`permission-badge permission-${permission.permission.toLowerCase()}`}>{permissionLabel(permission.permission)}</span></td><td><div className="table-actions"><select aria-label={`${principalName(permission)} 권한 변경`} value={permission.permission} disabled={!canManage || (permission.principalType === 'USER' && permission.principalId === document.ownerPrincipalId)} onChange={(event) => void onUpsertPermission({ ...permission, permission: event.target.value as PermissionLevel }).catch(() => undefined)}><option value="READ">읽기</option><option value="WRITE">쓰기</option><option value="ADMIN">관리</option></select><button className="danger" type="button" disabled={!canManage || (permission.principalType === 'USER' && permission.principalId === document.ownerPrincipalId)} onClick={() => void onRemovePermission(permission).catch(() => undefined)}>회수</button></div></td></tr>
             ))}</tbody></table></div></>
           )}
         </section>
@@ -201,7 +197,7 @@ export function DocumentDetailPage({
 
       {modal === 'searchable' && targetVersion && <Modal title={`검색에 버전 ${targetVersion.versionNo}을 사용할까요?`} description="임베딩이 완료된 버전만 지정할 수 있습니다." onClose={() => setModal(null)}><div className="modal-body"><div className="information-callout"><span aria-hidden="true">i</span><p>더 최신 버전의 임베딩이 완료되면 검색 대상은 자동으로 최신 버전으로 이동합니다.</p></div></div><div className="modal-actions"><button className="button secondary" type="button" onClick={() => setModal(null)}>취소</button><button className="button primary" type="button" disabled={isSaving} onClick={async () => { setIsSaving(true); try { await onSetSearchableVersion(targetVersion.versionNo); setModal(null) } catch { /* 상위 Toast 사용 */ } finally { setIsSaving(false) } }}>버전 {targetVersion.versionNo} 사용</button></div></Modal>}
 
-      {modal === 'permission' && <Modal title="권한 부여" description="사용자 또는 테넌트의 문서 접근 권한을 추가하거나 변경합니다." onClose={() => setModal(null)}><form onSubmit={savePermission}><div className="modal-body form-grid"><label className="field-stack"><span>대상 유형</span><select value={principalType} onChange={(event) => setPrincipalType(event.target.value as PrincipalType)}><option value="USER">사용자</option><option value="TENANT">테넌트</option></select></label>{principalType === 'USER' ? <label className="field-stack"><span>권한 대상</span><select value={principalId} onChange={(event) => setPrincipalId(event.target.value)}>{tenantUsers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></label> : <div className="field-stack"><span>권한 대상</span><div className="readonly-field">{user.tenant}</div></div>}<label className="field-stack"><span>권한</span><select value={permissionLevel} onChange={(event) => setPermissionLevel(event.target.value as PermissionLevel)}><option value="READ">읽기</option><option value="WRITE">쓰기</option></select></label></div><div className="modal-actions"><button className="button secondary" type="button" onClick={() => setModal(null)}>취소</button><button className="button primary" type="submit" disabled={isSaving}>{isSaving ? '저장 중…' : '권한 저장'}</button></div></form></Modal>}
+      {modal === 'permission' && <Modal title="권한 부여" description="사용자 또는 테넌트의 문서 접근 권한을 추가하거나 변경합니다." onClose={() => setModal(null)}><form onSubmit={savePermission}><div className="modal-body form-grid"><label className="field-stack"><span>대상 유형</span><select value={principalType} onChange={(event) => setPrincipalType(event.target.value as PrincipalType)}><option value="USER">사용자</option><option value="TENANT">테넌트</option></select></label>{principalType === 'USER' ? <label className="field-stack"><span>권한 대상</span><select value={principalId} onChange={(event) => setPrincipalId(event.target.value)}>{tenantUsers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></label> : <div className="field-stack"><span>권한 대상</span><div className="readonly-field">{user.tenant}</div></div>}<label className="field-stack"><span>권한</span><select value={permissionLevel} onChange={(event) => setPermissionLevel(event.target.value as PermissionLevel)}><option value="READ">읽기</option><option value="WRITE">쓰기</option><option value="ADMIN">관리</option></select></label></div><div className="modal-actions"><button className="button secondary" type="button" onClick={() => setModal(null)}>취소</button><button className="button primary" type="submit" disabled={isSaving}>{isSaving ? '저장 중…' : '권한 저장'}</button></div></form></Modal>}
     </div>
   )
 }

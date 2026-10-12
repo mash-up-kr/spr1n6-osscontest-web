@@ -9,7 +9,7 @@ export type User = {
 }
 
 export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'RETRY_WAIT' | 'COMPLETED' | 'FAILED'
-export type PermissionLevel = 'READ' | 'WRITE'
+export type PermissionLevel = 'READ' | 'WRITE' | 'ADMIN'
 export type PrincipalType = 'USER' | 'TENANT'
 
 export type IndexingInfo = {
@@ -33,6 +33,8 @@ export type DocumentSummary = {
   searchableVersionNo: number | null
   latestVersionIndexingStatus: DocumentStatus
   createdAt: string
+  effectivePermission: PermissionLevel
+  ownerPrincipalId: string
 }
 
 export type DocumentVersion = {
