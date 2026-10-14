@@ -216,9 +216,10 @@ function App() {
           ...(latest ? { indexing: latest, latestVersionIndexingStatus: latest.status } : {}),
         } : current)
         if (latest) {
-          setDocuments((current) => current.map((document) => (
-            document.id === documentId ? { ...document, latestVersionIndexingStatus: latest.status } : document
-          )))
+          // 상태가 같으면 배열을 그대로 둔다. 새 배열은 documents 에 걸린 목록 폴링을 재시작시킨다.
+          setDocuments((current) => current.some((document) => document.id === documentId && document.latestVersionIndexingStatus !== latest.status)
+            ? current.map((document) => document.id === documentId ? { ...document, latestVersionIndexingStatus: latest.status } : document)
+            : current)
         }
       } catch (error) {
         if (!controller.signal.aborted) notify(apiErrorMessage(error), 'error')
