@@ -8,6 +8,7 @@ import type {
   PrincipalType,
   User,
 } from '../types'
+import { formatDateTime, IndexingErrorCallout, IndexingFacts } from './IndexingFacts'
 import { Modal } from './Modal'
 import { StatusBadge } from './StatusBadge'
 import { VersionDrawer } from './VersionDrawer'
@@ -32,9 +33,6 @@ type DocumentDetailPageProps = {
 const tabLabels: Record<DetailTab, string> = { overview: '개요', versions: '버전', permissions: '권한' }
 const allowedExtensions = ['pdf', 'docx', 'md', 'markdown', 'hwp', 'txt']
 const permissionLabel = (permission: PermissionLevel | null) => permission === 'ADMIN' ? '관리' : permission === 'WRITE' ? '쓰기' : permission === 'READ' ? '읽기' : '없음'
-const formatDateTime = (value: string) => new Intl.DateTimeFormat('ko-KR', {
-  year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-}).format(new Date(value))
 const formatBytes = (bytes: number) => bytes < 1024 ** 2 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`
 
 export function DocumentDetailPage({
@@ -134,19 +132,12 @@ export function DocumentDetailPage({
 
           <section className="detail-section indexing-overview">
             <div className="detail-section-heading"><div><h2>인덱싱 상태</h2><p>최신 업로드 버전의 상태를 완료 또는 실패까지 주기적으로 조회합니다.</p></div><span className="live-label"><i aria-hidden="true" /> 폴링 중</span></div>
-            <dl className="job-facts">
-              <div><dt>작업 상태</dt><dd><StatusBadge status={document.indexing.status} /></dd></div>
-              <div><dt>시도 횟수</dt><dd>{document.indexing.attemptCount ?? '—'}</dd></div>
-              <div><dt>청크 수</dt><dd>{document.indexing.chunkCount ?? '—'}</dd></div>
-              <div><dt>시작 시각</dt><dd>{document.indexing.startedAt ? formatDateTime(document.indexing.startedAt) : '—'}</dd></div>
-              <div><dt>완료 시각</dt><dd>{document.indexing.completedAt ? formatDateTime(document.indexing.completedAt) : '—'}</dd></div>
-            </dl>
-            {document.indexing.lastErrorMessage && (
-              <div className={document.indexing.status === 'FAILED' ? 'failure-callout wide-callout' : 'failure-callout retry-callout wide-callout'}>
-                <span className="callout-symbol" aria-hidden="true">!</span><div><strong>{document.indexing.status === 'FAILED' ? '인덱싱 실패' : '인덱싱 오류'}</strong><p>{document.indexing.lastErrorMessage}</p></div>
-                {document.indexing.status === 'FAILED' && <button className="button secondary" type="button" onClick={() => void onRetryVersion(document.latestUploadVersionNo).catch(() => undefined)} disabled={!canWrite}>재인덱싱</button>}
-              </div>
-            )}
+            <dl className="job-facts"><IndexingFacts indexing={document.indexing} /></dl>
+            <IndexingErrorCallout
+              indexing={document.indexing}
+              canWrite={canWrite}
+              onRetry={() => void onRetryVersion(document.latestUploadVersionNo).catch(() => undefined)}
+            />
           </section>
 
           <section className="detail-section document-info-section">
