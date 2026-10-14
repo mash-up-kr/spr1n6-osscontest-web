@@ -14,11 +14,14 @@ export type PrincipalType = 'USER' | 'TENANT'
 
 export type IndexingInfo = {
   status: DocumentStatus
+  phase?: string | null
   attemptCount?: number
   chunkCount?: number | null
   startedAt?: string | null
   completedAt?: string | null
   lastErrorMessage?: string | null
+  nextRetryAt?: string | null
+  lastErrorCode?: string | null
 }
 
 export type IndexingStatus = IndexingInfo & {

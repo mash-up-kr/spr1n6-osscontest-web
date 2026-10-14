@@ -5,7 +5,6 @@ import type {
   UploadResponse,
 } from '../types'
 import { apiBlobRequest, apiRequest } from './client'
-import { getIndexingStatus } from './indexing'
 
 type Page<T> = {
   items: T[]
@@ -79,13 +78,9 @@ export const listAllDocumentVersions = async (userId: string, documentId: number
   return versions
 }
 
-export const getDocumentVersion = async (userId: string, documentId: number, versionNo: number) => {
-  const [version, indexing] = await Promise.all([
-    apiRequest<DocumentVersion>(`${documentPath(documentId)}/versions/${encodeURIComponent(versionNo)}`, { userId }),
-    getIndexingStatus(userId, documentId, versionNo),
-  ])
-  return { ...version, indexing }
-}
+export const getDocumentVersion = (userId: string, documentId: number, versionNo: number) => (
+  apiRequest<DocumentVersion>(`${documentPath(documentId)}/versions/${encodeURIComponent(versionNo)}`, { userId })
+)
 
 const contentDispositionFilename = (value: string | null) => {
   if (!value) return null
