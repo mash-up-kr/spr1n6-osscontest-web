@@ -10,7 +10,7 @@ export const getIndexingStatus = (
   documentId: number,
   versionNo: number,
   signal?: AbortSignal,
-) => apiRequest<IndexingStatus>(indexingPath(documentId, versionNo), { userId, signal })
+) => apiRequest<IndexingStatus>(indexingPath(documentId, versionNo), { userId, signal, retry: false })
 
 export const retryIndexing = (userId: string, documentId: number, versionNo: number) => (
   apiRequest<{ versionNo: number; indexing: { status: 'PENDING' } }>(`${indexingPath(documentId, versionNo)}/retry`, {
