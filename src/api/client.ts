@@ -29,6 +29,7 @@ export class ApiError extends Error {
 // 쓰기는 실패 응답을 받아도 실제로는 반영됐을 수 있어 다시 보내지 않는다.
 // 45초는 기능 명세의 쓰기 재개 기준이다. 실측 승격 시간(약 30초)을 덮는다.
 const RETRY_DEADLINE_MS = 45_000
+// 서버가 Retry-After 를 주지 않거나 숫자가 아닐 때 쓰는 재시도 간격이다.
 const DEFAULT_RETRY_AFTER_SECONDS = 5
 
 let retryingRequests = 0
@@ -109,6 +110,7 @@ const request = async (path: string, { userId, headers, readOnly: readOnlyOption
   }
 }
 
+// 응답 본문이 없는 204 는 undefined 를 돌려준다. 호출하는 쪽의 T 가 이를 허용해야 한다.
 export const apiRequest = async <T>(path: string, options: RequestOptions): Promise<T> => {
   const response = await request(path, options)
   if (response.status === 204) return undefined as T
