@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 매쉬업스프링YB
+ * SPDX-License-Identifier: MIT
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError, apiErrorMessage } from './api/client'
 import {

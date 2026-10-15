@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 매쉬업스프링YB
+ * SPDX-License-Identifier: MIT
+ */
+
 import type { DocumentStatus } from '../types'
 
 const labels: Record<DocumentStatus, string> = {

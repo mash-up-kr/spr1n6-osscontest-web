@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 매쉬업스프링YB
+ * SPDX-License-Identifier: MIT
+ */
+
 export type View = 'documents' | 'search'
 export type DetailTab = 'overview' | 'versions' | 'permissions'
 
