@@ -59,7 +59,7 @@ API에 정의되지 않은 처리 단계나 임의 진행률은 표시하지 않
 
 ### 검색
 
-검색 화면은 `POST /api/v1/search`에 `query`, `topK`, `contextWindow`, `efSearch`를 보냅니다. 결과에는 API의 다음 값을 그대로 사용합니다.
+검색 화면은 `POST /api/v1/search`에 `query`, `topK`, `contextWindow`, `rerank`를 보냅니다. `rerank`는 Cohere Rerank로 상위 후보를 다시 정렬할지 정하며 기본값은 켜짐입니다. 정확도가 오르는 대신 지연시간이 늘고, 서버에 `COHERE_API_KEY`가 없으면 값과 무관하게 RRF 순서로 대체됩니다. 결과에는 API의 다음 값을 그대로 사용합니다.
 
 - `score`
 - `pageFrom` / `pageTo`
