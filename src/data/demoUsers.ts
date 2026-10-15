@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 매쉬업스프링YB
+ * SPDX-License-Identifier: MIT
+ */
+
 import type { User } from '../types'
 
 // 토큰 발급은 API 범위 밖이므로, 서버에 시드된 데모 사용자 식별자를 사용한다.

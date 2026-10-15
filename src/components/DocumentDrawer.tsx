@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 매쉬업스프링YB
+ * SPDX-License-Identifier: MIT
+ */
+
 import { useEffect } from 'react'
 import type { DocumentSummary } from '../types'
 import { StatusBadge } from './StatusBadge'

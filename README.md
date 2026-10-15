@@ -103,3 +103,15 @@ npm run preview
 문서 목록·상세 응답의 `effectivePermission` (`READ`, `WRITE`, `ADMIN`)으로 편집 가능 여부를 판단합니다. 권한 목록은 ADMIN에게만 허용되므로, 목록 조회 실패를 문서 쓰기 권한 없음으로 해석하지 않습니다. `ownerPrincipalId`는 소유자 권한 회수 방지에 사용합니다. 이 두 필드를 제공하는 서버 변경을 먼저 반영해야 합니다.
 
 권한별 화면 회귀 검증은 의존성 설치 후 `node scripts/check-permissions.mjs`로 실행합니다.
+
+## 라이선스
+
+이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE)를 참고하세요.
+
+### 사용된 오픈소스
+
+| 프로젝트 | 라이선스 |
+|---|---|
+| React / React DOM | MIT |
+| Vite / @vitejs/plugin-react | MIT |
+| TypeScript | Apache-2.0 |
