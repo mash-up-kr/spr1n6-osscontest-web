@@ -6,21 +6,21 @@ export type ApiErrorBody = {
 
 export class ApiError extends Error {
   status: number
-  method: string
+  readOnly: boolean
   code?: string
   traceId?: string
 
-  constructor(status: number, method: string, body: ApiErrorBody = {}) {
+  constructor(status: number, readOnly: boolean, body: ApiErrorBody = {}) {
     super(body.message || `API 요청에 실패했습니다. (${status})`)
     this.name = 'ApiError'
     this.status = status
-    this.method = method
+    this.readOnly = readOnly
     this.code = body.code
     this.traceId = body.traceId
   }
 }
 
-// 서버는 DB 장애 전환 중에 503 과 Retry-After 를 준다. 조회(GET)만 그 간격으로 다시 요청하고,
+// 서버는 DB 장애 전환 중에 503 과 Retry-After 를 준다. 데이터를 바꾸지 않는 요청만 그 간격으로 다시 요청하고,
 // 쓰기는 실패 응답을 받아도 실제로는 반영됐을 수 있어 다시 보내지 않는다.
 // 45초는 기능 명세의 쓰기 재개 기준이다. 실측 승격 시간(약 30초)을 덮는다.
 const RETRY_DEADLINE_MS = 45_000
@@ -59,9 +59,13 @@ const apiBaseUrl = rawBaseUrl.replace(/\/$/, '')
 type RequestOptions = Omit<RequestInit, 'headers'> & {
   userId: string
   headers?: HeadersInit
+  /** 데이터를 바꾸지 않는 요청. 기본은 GET 만이다. 검색처럼 POST 로 조회하는 요청은 직접 표시한다. */
+  readOnly?: boolean
+  /** 503 이면 다시 요청할지. 기본은 readOnly 와 같다. 스스로 주기적으로 다시 조회하는 폴링은 끈다. */
+  retry?: boolean
 }
 
-const parseError = async (response: Response, method: string) => {
+const parseError = async (response: Response, readOnly: boolean) => {
   let body: ApiErrorBody = {}
   try {
     const parsed = await response.json() as unknown
@@ -69,17 +73,18 @@ const parseError = async (response: Response, method: string) => {
   } catch {
     body.message = response.statusText
   }
-  throw new ApiError(response.status, method, body)
+  throw new ApiError(response.status, readOnly, body)
 }
 
-const request = async (path: string, { userId, headers, ...init }: RequestOptions) => {
+const request = async (path: string, { userId, headers, readOnly: readOnlyOption, retry: retryOption, ...init }: RequestOptions) => {
   const requestHeaders = new Headers(headers)
   requestHeaders.set('X-User-Id', userId)
   if (init.body && !(init.body instanceof FormData) && !requestHeaders.has('Content-Type')) {
     requestHeaders.set('Content-Type', 'application/json')
   }
 
-  const method = (init.method ?? 'GET').toUpperCase()
+  const readOnly = readOnlyOption ?? (init.method ?? 'GET').toUpperCase() === 'GET'
+  const retry = retryOption ?? readOnly
   const deadline = Date.now() + RETRY_DEADLINE_MS
   let retrying = false
   try {
@@ -88,8 +93,8 @@ const request = async (path: string, { userId, headers, ...init }: RequestOption
       if (response.ok) return response
 
       const delay = retryAfterMs(response)
-      if (method !== 'GET' || response.status !== 503 || Date.now() + delay > deadline) {
-        return await parseError(response, method)
+      if (!retry || response.status !== 503 || Date.now() + delay > deadline) {
+        return await parseError(response, readOnly)
       }
       if (!retrying) { retrying = true; setRetrying(1) }
       await wait(delay, init.signal)
@@ -122,7 +127,7 @@ export const apiErrorMessage = (error: unknown) => {
   if (error.status === 413) return '파일은 최대 20MB까지 업로드할 수 있습니다.'
   if (error.status === 415) return '지원하지 않는 파일 형식입니다.'
   if (error.status === 503) {
-    return error.method === 'GET'
+    return error.readOnly
       ? '일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
       : '요청이 처리되지 않았을 수 있습니다. 목록을 확인한 뒤 다시 시도해 주세요.'
   }
