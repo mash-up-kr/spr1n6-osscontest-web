@@ -1033,6 +1033,15 @@ dd {
   color: var(--warning);
 }
 
+.error-code {
+  margin-right: 4px;
+  padding: 1px 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
 .failure-callout strong {
   font-size: 13px;
 }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { DocumentVersion } from '../types'
+import { formatDateTime, hasIndexingError, IndexingErrorText, IndexingFacts } from './IndexingFacts'
 import { StatusBadge } from './StatusBadge'
 
 type VersionDrawerProps = {
@@ -34,14 +35,12 @@ export function VersionDrawer({ version, onClose, onDownload }: VersionDrawerPro
 
         <div className="drawer-section document-details"><h3>파일</h3><dl>
           <div><dt>형식</dt><dd>{version.mimeType}</dd></div><div><dt>크기</dt><dd>{formatBytes(version.fileSize)}</dd></div>
-          <div><dt>업로드 시각</dt><dd>{new Date(version.uploadedAt).toLocaleString('ko-KR')}</dd></div><div><dt>검색 대상</dt><dd>{version.searchable ? '사용 중' : '아님'}</dd></div>
+          <div><dt>업로드 시각</dt><dd>{formatDateTime(version.uploadedAt)}</dd></div><div><dt>검색 대상</dt><dd>{version.searchable ? '사용 중' : '아님'}</dd></div>
         </dl></div>
 
         <div className="drawer-section document-details"><h3>인덱싱</h3><dl>
-          <div><dt>시도 횟수</dt><dd>{version.indexing.attemptCount ?? '—'}</dd></div><div><dt>청크 수</dt><dd>{version.indexing.chunkCount ?? '—'}</dd></div>
-          <div><dt>시작 시각</dt><dd>{version.indexing.startedAt ? new Date(version.indexing.startedAt).toLocaleString('ko-KR') : '—'}</dd></div>
-          <div><dt>완료 시각</dt><dd>{version.indexing.completedAt ? new Date(version.indexing.completedAt).toLocaleString('ko-KR') : '—'}</dd></div>
-          <div><dt>마지막 오류</dt><dd>{version.indexing.lastErrorMessage ?? '—'}</dd></div>
+          <IndexingFacts indexing={version.indexing} withStatus={false} />
+          <div><dt>마지막 오류</dt><dd>{hasIndexingError(version.indexing) ? <IndexingErrorText indexing={version.indexing} /> : '—'}</dd></div>
         </dl></div>
 
         <div className="drawer-section metadata-section"><h3>원본 메타데이터</h3><dl>{Object.entries(version.sourceMetadata ?? {}).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{metadataValue(value)}</dd></div>)}</dl></div>

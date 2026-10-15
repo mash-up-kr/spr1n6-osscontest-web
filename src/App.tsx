@@ -169,26 +169,65 @@ function App() {
     return () => controller.abort()
   }, [detailDocumentId, fetchDocumentDetail])
 
+  // 폴링 대상이 바뀔 때만 타이머를 다시 만든다. 응답 반영으로 detailDocument 가 바뀌어도 유지된다.
+  const pollDocumentId = detailDocument?.id ?? null
+  const pollLatestVersionNo = detailDocument?.latestUploadVersionNo ?? null
+  const pollVersionKey = detailDocument
+    ? detailDocument.versions.filter((version) => !isTerminal(version.indexing.status)).map((version) => version.versionNo).join(',')
+    : ''
+
   useEffect(() => {
-    if (!detailDocument || !detailDocument.versions.some((version) => !isTerminal(version.indexing.status))) return
+    if (pollDocumentId === null || !pollVersionKey) return
+    const documentId = pollDocumentId
+    const versionNos = pollVersionKey.split(',').map(Number)
     const controller = new AbortController()
     let pending = false
     const poll = async () => {
       if (pending) return
       pending = true
       try {
-        const next = await fetchDocumentDetail(detailDocument.id, controller.signal)
+        const responses = await Promise.allSettled(versionNos.map((versionNo) => (
+          getIndexingStatus(currentUser.id, documentId, versionNo, controller.signal)
+        )))
         if (controller.signal.aborted) return
-        setDetailDocument(next)
-        if (next.versions.some((version) => isTerminal(version.indexing.status)
-          && detailDocument.versions.some((previous) => previous.versionNo === version.versionNo && !isTerminal(previous.indexing.status)))) refreshList()
+        const updates = responses.flatMap((response) => response.status === 'fulfilled' ? [response.value] : [])
+        if (!updates.length) {
+          const failure = responses.find((response) => response.status === 'rejected')
+          notify(apiErrorMessage(failure?.reason), 'error')
+          return
+        }
+        // Worker 가 검색 대상·최신 임베딩 버전을 바꿨을 수 있어 종료 시점에는 상세를 다시 읽는다.
+        // 먼저 패치하면 폴링 키가 바뀌어 이 effect 가 정리되고 재조회가 abort 되므로 패치보다 앞선다.
+        if (updates.some((indexing) => isTerminal(indexing.status))) {
+          const next = await fetchDocumentDetail(documentId, controller.signal)
+          if (controller.signal.aborted) return
+          setDetailDocument(next)
+          refreshList()
+          return
+        }
+        const byVersionNo = new Map(updates.map((indexing) => [indexing.versionNo, indexing]))
+        const latest = pollLatestVersionNo === null ? undefined : byVersionNo.get(pollLatestVersionNo)
+        setDetailDocument((current) => current && current.id === documentId ? {
+          ...current,
+          versions: current.versions.map((version) => {
+            const indexing = byVersionNo.get(version.versionNo)
+            return indexing ? { ...version, indexing } : version
+          }),
+          ...(latest ? { indexing: latest, latestVersionIndexingStatus: latest.status } : {}),
+        } : current)
+        if (latest) {
+          // 상태가 같으면 배열을 그대로 둔다. 새 배열은 documents 에 걸린 목록 폴링을 재시작시킨다.
+          setDocuments((current) => current.some((document) => document.id === documentId && document.latestVersionIndexingStatus !== latest.status)
+            ? current.map((document) => document.id === documentId ? { ...document, latestVersionIndexingStatus: latest.status } : document)
+            : current)
+        }
       } catch (error) {
         if (!controller.signal.aborted) notify(apiErrorMessage(error), 'error')
       } finally { pending = false }
     }
     const timer = window.setInterval(() => void poll(), 3000)
     return () => { controller.abort(); window.clearInterval(timer) }
-  }, [detailDocument, fetchDocumentDetail, notify, refreshList])
+  }, [currentUser.id, fetchDocumentDetail, notify, pollDocumentId, pollLatestVersionNo, pollVersionKey, refreshList])
 
   const handleUserChange = (userId: string) => {
     setCurrentUserId(userId)
