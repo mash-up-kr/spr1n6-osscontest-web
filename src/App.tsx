@@ -26,6 +26,7 @@ import {
 import { DocumentDetailPage } from './components/DocumentDetailPage'
 import { DocumentsPage } from './components/DocumentsPage'
 import { Header } from './components/Header'
+import { RetryNotice } from './components/RetryNotice'
 import { SearchPage } from './components/SearchPage'
 import { Sidebar } from './components/Sidebar'
 import { demoUsers } from './data/demoUsers'
@@ -349,6 +350,7 @@ function App() {
           )
         ) : <SearchPage user={currentUser} onOpenDocument={openDocument} />}
       </main>
+      <RetryNotice />
       {toast && <div className={`toast toast-${toast.tone}`} role="status"><span aria-hidden="true">{toast.tone === 'success' ? '✓' : toast.tone === 'error' ? '!' : 'i'}</span>{toast.message}</div>}
     </div>
   )

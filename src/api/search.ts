@@ -15,6 +15,6 @@ export type SearchRequest = {
 
 export const searchDocuments = (userId: string, request: SearchRequest, signal?: AbortSignal) => (
   apiRequest<{ items: SearchResult[] }>('/api/v1/search', {
-    method: 'POST', userId, signal, body: JSON.stringify(request),
+    method: 'POST', readOnly: true, userId, signal, body: JSON.stringify(request),
   })
 )

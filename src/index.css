@@ -2642,6 +2642,12 @@ dd {
   color: var(--error);
 }
 
+/* 결과 알림(toast)과 겹치지 않게 왼쪽 아래에 둔다. */
+.retry-notice {
+  right: auto;
+  left: 24px;
+}
+
 .result-source-button {
   min-height: 32px;
   margin-top: 12px;
