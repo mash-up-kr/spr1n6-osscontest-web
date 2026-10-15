@@ -155,7 +155,7 @@ export function DocumentsPage({
                                 {loadingVersionsId === document.id ? <div className="table-empty"><span className="spinner dark" aria-hidden="true" /> 불러오는 중…</div> : (
                                   <div className="version-radio-list" role="radiogroup" aria-label="완료된 버전">
                                     {completedVersions.map((version) => (
-                                      <label key={version.versionNo} className={version.searchable ? 'selected' : undefined}><input type="radio" name={`searchable-version-${document.id}`} checked={version.searchable} disabled={savingVersion} onChange={() => void chooseSearchableVersion(document.id, version.versionNo)} /><span><strong>v{version.versionNo}</strong><small>{version.originalFilename}</small></span><em>{version.searchable ? '사용 중' : '선택'}</em></label>
+                                      <label key={version.versionNo} className={version.searchable ? 'selected' : undefined}><input type="radio" name={`searchable-version-${document.id}`} checked={version.searchable} disabled={savingVersion || !['WRITE', 'ADMIN'].includes(document.effectivePermission)} onChange={() => void chooseSearchableVersion(document.id, version.versionNo)} /><span><strong>v{version.versionNo}</strong><small>{version.originalFilename}</small></span><em>{version.searchable ? '사용 중' : '선택'}</em></label>
                                     ))}
                                   </div>
                                 )}
