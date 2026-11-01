@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  # 문서와 GitHub 템플릿만 바뀐 PR은 건너뛴다.
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
+
+permissions:
+  contents: read
+
+# 같은 브랜치에 새로 push하면 이전 PR 실행을 취소한다. main push는 취소하지 않는다.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # package.json의 engines(node >=22)와 맞춘다.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      # tsc -b 타입 검사와 vite 번들링을 함께 돈다.
+      - name: 빌드
+        run: npm run build
+
+      - name: 권한별 화면 검증
+        run: node scripts/check-permissions.mjs
+
+      - name: 인덱싱 상태 표시 검증
+        run: node scripts/check-indexing.mjs

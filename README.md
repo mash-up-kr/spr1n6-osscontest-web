@@ -1,3 +1,5 @@
+[한국어](README.md) | [English](README_EN.md)
+
 # OpenSQL Document AI
 
 ## 프로젝트 소개
@@ -109,6 +111,9 @@ npm run preview
 
 - [API 명세](api-design.md): 이 웹 앱이 사용하는 서버 API 계약
 - [API–UI 연동 가이드](API_UI_INTEGRATION_GUIDE.md): 화면별 API 사용 방식과 에러 처리
+- [기여 가이드](CONTRIBUTING.md): 이슈·브랜치·커밋·PR 절차
+- [코드 컨벤션](docs/CODE_CONVENTIONS.md): 주석·가독성·구조·실패 처리 기준
+- [보안 정책](SECURITY.md): 취약점 비공개 신고 방법
 
 ## 라이선스
 

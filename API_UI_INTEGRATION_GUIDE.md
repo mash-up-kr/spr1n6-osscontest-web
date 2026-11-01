@@ -1,3 +1,5 @@
+[한국어](API_UI_INTEGRATION_GUIDE.md) | [English](API_UI_INTEGRATION_GUIDE_EN.md)
+
 # API–UI 연동 가이드
 
 이 웹 앱은 `api-design.md`의 API 계약을 사용합니다. 문서·검색 mock 데이터와 인덱싱 mock 타이머는 제거했습니다.
