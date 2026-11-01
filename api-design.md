@@ -1,3 +1,5 @@
+[한국어](api-design.md) | [English](api-design_EN.md)
+
 # API 명세
 
 | 항목        | 값                                        |
